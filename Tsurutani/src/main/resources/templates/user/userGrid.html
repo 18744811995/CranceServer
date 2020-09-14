@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript" src="../static/js/layui.js"></script>
+    <link rel="stylesheet" href="../static/css/layui.css"/>
+</head>
+<body>
+<script type="text/html" id="userGrid_toolbar">
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <div class="layui-form-label">昵称</div>
+            <div class="layui-input-inline">
+                <input type="text" name="userName" id="userName" class="layui-input"/>
+            </div>
+            <div class="layui-form-label">状态</div>
+            <div class="layui-input-inline">
+                <select class="layui-select" name="status" id="status">
+                    <option value="-1"></option>
+                    <option value="0">正常</option>
+                    <option value="1">锁定</option>
+                </select>
+            </div>
+            <div class="layui-input-inline">
+                <div class="layui-btn" id="userGrid_select" lay-event="select">搜索</div>
+            </div>
+        </div>
+    </form>
+    <div class="layui-btn-group">
+        <!--<div class="layui-btn" lay-event="clre">清空</div>-->
+        <button type="button" class="layui-btn layui-btn-primary" lay-event="add">新增</button>
+    </div>
+</script>
+
+</div>
+<table id="userGrid" lay-filter="user_filter"></table>
+<script type="text/html" id="opt_tool">
+    <button type="button" lay-event="update" class="layui-btn layui-btn-warm layui-btn-sm"><i class="layui-icon">&#xe642;</i>重置密码
+    </button>
+    <button type="button" lay-event="sd" class="layui-btn  layui-btn-danger layui-btn-sm"><i
+            class="layui-icon">&#xe673;</i>冻结
+    </button>
+    <button type="button" lay-event="js" class="layui-btn layui-btn-normal layui-btn-sm"><i
+            class="layui-icon">&#x1005;</i>启用
+    </button>
+    <button type="button" lay-event="fpjs" class="layui-btn layui-btn-normal layui-btn-sm"><i class="layui-icon">&#xe770;</i>角色
+    </button>
+    <!--<button type="button" lay-event="detail" class="layui-btn layui-btn-sm"><i class="layui-icon">&#xe702;</i>详情</button>-->
+</script>
+<!---->
+<script type="text/javascript" th:inline="none">
+
+    layui.use(['table', 'form', 'transfer'], function () {
+        var $ = layui.jquery;
+        var table = layui.table;
+        var form = layui.form;
+        var layer = layui.layer;
+        var transfer = layui.transfer;
+        var resultTable = table.render({
+            elem: '#userGrid',
+            height: 600,
+            //data:user_data,
+            url: '/user/findUserAll',
+            toolbar: '#userGrid_toolbar',
+            //toolbar: false,
+            page: true,
+            cols: [
+                [
+                    {type: 'checkbox', fixed: 'left'},
+                    {field: 'uId', title: 'ID', sort: true, fixed: 'left'},
+                    {field: 'username', title: '登录账号'},
+                    {field: 'userCkName', title: '昵称'},
+                    {field: 'phone', title: '手机号'},
+                    {field: 'status', title: '用户状态'},
+                    {field: 'opt', width: 400, title: '操作', toolbar: '#opt_tool'}
+                ]
+            ]
+        })
+        /*$('#userGrid_select').click(function(){
+            var userName=$('#userName').val();
+            var status=$('#status').val();
+            rsultTable.reload({
+                url:'/user/findUserAll',
+                where:{
+                    'userName':userName,
+                    'status':status
+                },
+                page:{
+                    curr:1
+                }
+            })
+        })*/
+        table.on('tool(user_filter)', function (obj) {
+            var opt = obj.event;
+            var rowdata = obj.data;
+            if (opt === 'update') {
+                var url = encodeURI('/user/goUpdatePws?uId=' + rowdata.uId);
+                layer.open({
+                    type: 2,
+                    anim: 1,
+                    title: ['修改密码', 'font-size:16px;'],
+                    content: [url, 'no'],
+                    area: ['900px', '300px'],
+                    btn: ['保存', '取消'],
+                    yes: function (index, layero) {
+                        var body = layer.getChildFrame('body', index);
+                        var pws = body.find('#pws').val();
+                        var newpws = body.find('#newpws').val();
+                        var qdpws = body.find("#qdpws").val();
+                        var uId = body.find("#uId").val();
+                        //核对旧密码是否正确
+                        var flag = false;
+                        $.ajax({
+                            url: '/user/userPwsRz',
+                            data: {
+                                'pws': pws,
+                                'uId': uId
+                            },
+                            type: 'post',
+                            async: false,
+                            dataType: 'json',
+                            success: function (res) {
+                                flag = res;
+                            }
+                        })
+                        if (!flag) {
+                            layer.msg("旧密码不匹配！")
+                            return false;
+                        }
+                        //判断两次输入的新密码是否匹配
+                        if (newpws != qdpws) {
+                            layer.msg("两次输入的新密码不一致！")
+                            return false;
+                        }
+                        var msg;
+                        //修改密码
+                        $.ajax({
+                            url: '/user/updateUserPws',
+                            data: {
+                                'newpws': newpws,
+                                'uId': uId
+                            },
+                            type: 'post',
+                            async: false,
+                            dataType: 'json',
+                            success: function (res) {
+                                msg = res;
+                            }
+                        })
+                        layer.msg(msg.msg)
+                        if (msg.code != 'success') {
+                            return false;
+                        }
+                        resultTable.reload();
+                        layer.close(index);
+                    }
+                })
+            } else if (opt == 'sd') {
+                var resMsg;
+                //冻结用户
+                $.ajax({
+                    url: '/user/updateStatus',
+                    data: {
+                        'uId': rowdata.uId,
+                        'status': '1'
+                    },
+                    type: 'post',
+                    dataType: 'json',
+                    async: false,
+                    success: function (res) {
+                        resMsg = res;
+                    }
+                })
+                layer.msg(resMsg.msg);
+                if (resMsg.code == 'success') {
+                    resultTable.reload();
+                }
+            } else if (opt == 'js') {
+                //解冻
+                var resMsg;
+                $.ajax({
+                    url: '/user/updateStatus',
+                    data: {
+                        'uId': rowdata.uId,
+                        'status': '0'
+                    },
+                    type: 'post',
+                    dataType: 'json',
+                    async: false,
+                    success: function (res) {
+                        resMsg = res;
+                    }
+                })
+                layer.msg(resMsg.msg);
+                if (resMsg.code == 'success') {
+                    resultTable.reload();
+                }
+            } else if (opt == 'fpjs') {
+                layer.open({
+                    type: 2,
+                    title: '分配角色',
+                    area: ['500px', '600px;'],
+                    content: ['/user/gouserrole?uId=' + rowdata.uId, 'no'],
+                    btn: ['保存', '取消'],
+                    yes: function (index, layero) {
+                        var body = layer.getChildFrame('body', index);
+                        var iframeWin = window[layero.find('iframe')[0]['name']];
+                        //console.log(transfer.getData('demo1'));
+                        var param = iframeWin.Transfer.getData();//获取右侧数据
+                        var rIds = '';
+                        for (var i = 0; i < param.length; i++) {
+                            if (i == param.length - 1) {
+                                rIds += param[i].value;
+                            } else {
+                                rIds += param[i].value + ',';
+                            }
+                        }
+                        $.ajax({
+                            url: '/user/updateUserRole',
+                            type: 'post',
+                            async: false,
+                            dataType: 'json',
+                            data: {
+                                'rIds': rIds,
+                                'uId': rowdata.uId
+                            },
+                            success: function (res) {
+                                layer.msg(res.msg)
+                                if (res.code == 'success') {
+                                    layer.close(index);
+                                }
+                            }
+                        })
+                    }
+                })
+            }
+        })
+
+        table.on('toolbar(user_filter)', function (obj) {
+            var opt = obj.event;
+            if (opt === 'add') {
+                layer.open({
+                    type: 2,
+                    anim: 1,
+                    title: ['新增用户', 'font-size:16px;'],
+                    content: ['/user/goadduser', 'no'],
+                    area: ['900px', '400px'],
+                    btn: ['保存', '取消'],
+                    yes: function (index, layero) {
+                        debugger
+                        var body = layer.getChildFrame('body', index);
+                        var userCkName = body.find('#userCkName').val();
+                        var password = body.find('#password').val();
+                        var phone = body.find("#phone").val();
+                        //核对旧密码是否正确
+                        var flag = false;
+
+                        if (!userCkName) {
+                            layer.msg("用户昵称不能为空！")
+                            return false;
+                        }
+                        if (!password) {
+                            layer.msg("用户密码不能为空！")
+                            return false;
+                        }
+                        if (!phone) {
+                            layer.msg("手机号码不能为空！")
+                            return false;
+                        }else{
+                            var flag=true;
+                            $.ajax({
+                                url:'/user/checkPhone',
+                                type:'get',
+                                dataType:'json',
+                                data:{
+                                    'phone':phone
+                                },
+                                async:false,
+                                success:function(res){
+                                    if(res.code!='success'){
+                                        layer.msg("该手机号已被注册！！！")
+                                        flag=false;
+                                    }
+                                }
+                            })
+                            if(!flag){
+                                return flag;
+                            }
+                        }
+                        var msg;
+                        $.ajax({
+                            url:"/user/adduser",
+                            data:{
+                                "userCkName":userCkName,
+                                "password":password,
+                                "phone":phone
+                            },
+                            async:false,
+                            type:"Post",
+                            dataType:"json",
+                            success:function (res) {
+                                msg=res
+                                if(res.code=='success'){
+                                    layer.msg('注册成功！您的登录账号为手机号')
+                                }else{
+                                    layer.msg('系统错误，请联系管理员')
+                                }
+                            }
+                        })
+                        if (msg.code != 'success') {
+                            return false;
+                        }
+                        resultTable.reload();
+                        layer.close(index);
+                    }
+                })
+            } else if (opt === 'clre') {
+
+            } else if (opt === 'select') {
+                var userName = $('#userName').val();
+                var status = $('#status').val();
+                resultTable.reload({
+                    url: '/user/findUserAll',
+                    where: {
+                        'userName': userName,
+                        'status': status
+                    },
+                    page: {
+                        curr: 1
+                    }
+                })
+            }
+        })
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en"  xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript" src="../static/js/layui.js" ></script>
+    <link rel="stylesheet" href="../static/css/layui.css" />
+</head>
+<body style="padding-top: 20px;">
+<div class="layui-row">
+    <div class="layui-col-xs2">&emsp;</div>
+    <div class="layui-col-xs8">
+        <form class="layui-form">
+            <div class="layui-form-item">
+                <div class="layui-form-label">姓名</div>
+                <div class="layui-input-block">
+                    <input class="layui-input" name="pName" id="pName" placeholder="姓名"/>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">性别</div>
+                <div class="layui-input-block">
+                    <select name="pSex" id="pSex" class="layui-select" >
+                        <option value="">---请选择---</option>
+                        <option value="0">男</option>
+                        <option value="1">女</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">手机号码</div>
+                <div class="layui-input-block">
+                    <input type="text" name="phone" id="phone" class="layui-input" placeholder="手机号码" />
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">身份证号</div>
+                <div class="layui-input-block">
+                    <input type="text" name="carId" id="carId" class="layui-input" placeholder="身份证号" />
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">部门</div>
+                <div class="layui-input-block">
+                    <select name="dId" id="dId" class="layui-select" >
+                        <option value="">---请选择---</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">职位</div>
+                <div class="layui-input-block">
+                    <select name="cId" id="cId" class="layui-select" >
+                        <option value="">---请选择---</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-form-label">住址</div>
+                <div class="layui-input-block">
+                    <input name="pAddress" id="pAddress" class="layui-input" placeholder="住址" />
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <span id="msg" style="color: red;"></span>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="layui-col-xs2">&emsp;</div>
+</div>
+
+<script type="text/javascript" th:inline="none">
+    layui.use(['form','jquery'],function(){
+        var form=layui.form;
+        var $=layui.jquery;
+        $.ajax({
+            url:'/dept/findAll',
+            type:'post',
+            dataType:'json',
+            async:false,
+            success:function (res) {
+                var deptStr='<option value="">---请选择---</option>';
+                for(var i=0;i<res.length;i++){
+                    deptStr+='<option value="'+res[i].dId+'">'+res[i].dName+'</option>';
+                }
+                $('#dId').html(deptStr);
+                form.render();
+            }
+        })
+        $.ajax({
+            url:'/datacode/findAll',
+            type:'post',
+            dataType:'json',
+            async:false,
+            success:function (res) {
+                var deptStr='<option value="">---请选择---</option>';
+                for(var i=0;i<res.length;i++){
+                    deptStr+='<option value="'+res[i].cId+'">'+res[i].cName+'</option>';
+                }
+                $('#cId').html(deptStr);
+                form.render();
+            }
+        })
+        $('#pName').blur(function () {
+            var pName=$('#pName').val();
+            if(!pName){
+                $('#msg').html("姓名不能为空！");
+            }else{
+                $('#msg').html("");
+            }
+        })
+        $('#pSex').blur(function () {
+            var pSex=$('#pSex').val();
+            if(!pSex){
+                $('#msg').html("性别不能为空！");
+            }else{
+                $('#msg').html("");
+            }
+        })
+        $('#phone').blur(function () {
+            var phone=$('#phone').val();
+            if(!phone){
+                $('#msg').html("手机号码不能为空！");
+            }else{
+                $('#msg').html("");
+            }
+        })
+        $('#dId').blur(function () {
+            var dId=$('#dId').val();
+            if(!dId){
+                $('#msg').html("部门不能为空！");
+            }else{
+                $('#msg').html("");
+            }
+        })
+        $('#pAddress').blur(function () {
+            var pAddress=$('#pAddress').val();
+            if(!pAddress){
+                $('#msg').html("住址不能为空！");
+            }else{
+                $('#msg').html("");
+            }
+        })
+        $('#carId').blur(function () {
+            var carId=$(this).val();
+            if (carId==''){
+                $('#msg').html("身份证号码不能为空");
+            }else{
+                $.ajax({
+                    url:'/user/checkCarId',
+                    type:'post',
+                    dataType:'json',
+                    data:{
+                        'carId':carId
+                    },
+                    async:false,
+                    success:function(res){
+                        if(res.code=='success'){
+                            $('#msg').html("该身份证号员工已存在！");
+                        }else{
+                            $('#msg').html("");
+                        }
+                    }
+                })
+                //$('#carIdMsg').html("");
+            }
+        })
+    })
+</script>
+</body>
+</html>

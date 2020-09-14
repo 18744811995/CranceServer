@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hegu.tsurutani.dao.UserMapper">
+    <resultMap id="userMap" type="com.hegu.tsurutani.entity.Admin_User">
+        <result property="uId" column="uId"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="userCkName" column="userCkName"/>
+        <result property="phone" column="phone"/>
+        <result property="status" column="status"/>
+        <result property="create_time" column="create_time"/>
+        <result property="login_time" column="login_time"/>
+    </resultMap>
+    <!--查询单个用户信息-->
+    <select id="findUsersByUsernoAndPws" resultType="com.hegu.tsurutani.entity.Admin_User" parameterType="com.hegu.tsurutani.entity.Admin_User">
+        SELECT uId,username,password,userCkName,status,phone from admin_user WHERE  username=#{username} and password=#{password}
+    </select>
+
+   <select id="findUserByUIdAndPws" resultType="com.hegu.tsurutani.entity.Admin_User">
+        SELECT uId,username,password,userCkName,status,phone from admin_user WHERE  uId=#{uId} and password=#{pws}
+    </select>
+
+    <!--查询用户列表-->
+    <select id="findUserAll"  resultMap="userMap">
+        select uId,username,phone,password,
+        userCkName,
+        case WHEN status='0' THEN '正常' ELSE '冻结' END as status
+        from admin_user
+        where 1=1
+        <if test="userName!=null and userName!=''">
+            and userCkName LIKE CONCAT('%',#{userName},'%')
+        </if>
+        <if test="status!=null and status!='-1' and status!='' ">
+            and status=#{status}
+        </if>
+    </select>
+
+    <select id="getUserByPhone" parameterType="java.lang.String" resultType="com.hegu.tsurutani.entity.Admin_User">
+        select * from admin_user where phone=#{phone}
+    </select>
+    <!--添加用户-->
+    <insert id="addUseer">
+        INSERT INTO admin_user(uId,username,password,userCkName,status,phone,create_time)
+        VALUES(#{users.uId},#{users.username},#{users.password},#{users.userCkName},#{users.status},#{users.phone},#{users.create_time})
+    </insert>
+    <!--修改用户密码-->
+    <update id="updateUserPws">
+        UPDATE admin_user SET password=#{newpws} WHERE uId=#{uId}
+    </update>
+    <!--修改用户状态-->
+    <update id="updateUserStutas">
+        UPDATE admin_user SET status=#{status} where uId=#{uId}
+    </update>
+    <select id="findUserRoleByUId" resultType="java.lang.String">
+        SELECT rId FROM admin_user_role WHERE uId=#{uId}
+    </select>
+    <insert id="updateUserRole">
+        insert into admin_user_role(uId,rId)values
+        <foreach collection="rIds" separator="," item="items">
+            (#{uId},#{items})
+        </foreach>
+    </insert>
+    <delete id="deleteUserRoleByUId">
+        delete from admin_user_role where uId=#{uId}
+    </delete>
+
+</mapper>
