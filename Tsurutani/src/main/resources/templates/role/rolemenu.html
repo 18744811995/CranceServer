@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript" src="../static/js/layui.js" ></script>
+    <link rel="stylesheet" href="../static/css/layui.css" />
+    <link rel="stylesheet" href="../static/js/dtree/dtree.css" />
+    <link rel="stylesheet" href="../static/js/dtree/font/dtreefont.css" />
+</head>
+<body>
+<input id="rmIds" type="hidden" name="rmIds" th:value="${rmIds}"/>
+<input id="uprmIds" type="hidden" name="uprmIds"/>
+<input id="rId" type="hidden" name="rId" th:value="${rId}"/>
+<ul id="menuTree3" class="dtree" data-id="0"></ul>
+<script type="text/javascript" th:inline="none">
+    layui.extend({
+        dtree: '../static/js/dtree/dtree'  // 根据你自己的目录设置
+    }).use(['table','form','dtree'],function() {
+        var $ = layui.jquery;
+        var table = layui.table;
+        var form = layui.form;
+        var layer = layui.layer;
+        var dtree=layui.dtree;
+        DTree = dtree.render({
+            elem: "#menuTree3",
+            width:'100%',
+            url: "/menu/findDtreeMenuAll",
+            dataFormat: "list",  //配置data的风格为list
+            checkbar:true, //开启复选框
+            done: function(datas, obj, first){  //使用异步加载回调
+                if(first) {
+                    var rmIds=$('#rmIds').val();
+                    dtree.chooseDataInit("menuTree3", rmIds);
+                }
+            }
+        });
+    })
+</script>
+</body>
+</html>

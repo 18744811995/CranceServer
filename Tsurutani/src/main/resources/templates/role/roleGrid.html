@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <script type="text/javascript" src="../static/js/layui.js" ></script>
+    <link rel="stylesheet" href="../static/css/layui.css" />
+    <link rel="stylesheet" href="../static/js/dtree/dtree.css" />
+    <link rel="stylesheet" href="../static/js/dtree/font/dtreefont.css" />
+</head>
+<body>
+<script type="text/html" id="roleGrid_toolbar">
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <div class="layui-form-label" style="width: 100px;">角色名称</div>
+            <div class="layui-input-inline">
+                <input type="text" name="rName" id="rName" class="layui-input" />
+            </div>
+            <div class="layui-input-inline">
+                <div class="layui-btn" id="userGrid_select" lay-event="select">搜索</div>
+            </div>
+        </div>
+        <div>
+                <button type="button" lay-event="add" class="layui-btn  layui-btn-sm"> <i class="layui-icon">&#xe61f;</i>新增</button>
+        </div>
+    </form>
+</script>
+<table id="roleGrid" lay-filter="role_filter"></table>
+<script type="text/html" id="opt_tool">
+    <button type="button" lay-event="delete" class="layui-btn  layui-btn-danger layui-btn-sm"> <i class="layui-icon">&#x1007;</i>删除</button>
+    <button type="button" lay-event="update" class="layui-btn layui-btn-warm layui-btn-sm"> <i class="layui-icon">&#xe642;</i>编辑</button>
+    <button type="button" lay-event="fpcd" class="layui-btn layui-btn-normal layui-btn-sm"> <i class="layui-icon">&#xe672;</i>分配菜单</button>
+</script>
+<script type="text/javascript" th:inline="none">
+    layui.extend({
+        dtree: '../static/js/dtree/dtree'  // 根据你自己的目录设置
+    }).use(['table','form','dtree'],function() {
+        var $ = layui.jquery;
+        var table = layui.table;
+        var form = layui.form;
+        var layer = layui.layer;
+        var dtree=layui.dtree;
+
+        var resultTable = table.render({
+            elem: '#roleGrid',
+            height: 600,
+            //data:user_data,
+            url: '/role/findRolePage',
+            toolbar: '#roleGrid_toolbar',
+            //toolbar: false,
+            page: true,
+            cols: [
+                [
+                    {type: 'checkbox', fixed: 'left'},
+                    {field: 'rId', title: 'ID', sort: true, fixed: 'left'},
+                    {field: 'rName', title: '角色名称'},
+                    {field: 'opt', width: 400, title: '操作', toolbar: '#opt_tool'}
+                ]
+            ]
+        })
+        table.on('toolbar(role_filter)',function(obj) {
+            var opt = obj.event;
+            layer.open({
+                type:2,
+                anim:1,
+                title:['新增角色','font-size:16px;'],
+                content:['/role/goaddrole','no'],
+                area:['900px','300px'],
+                btn:['保存','取消'],
+                yes:function(index,layero){
+                    var body=layer.getChildFrame('body',index);
+                    var rName=body.find('#rName').val();
+                    if(!rName){
+                        return false;
+                    }
+                    var flag=true;
+                    $.ajax({
+                        url:'/role/addRole',
+                        type:'post',
+                        dataType:'json',
+                        async:false,
+                        data:{
+                            'rName':rName
+                        },
+                        success:function(res){
+                            if(res.code!='success'){
+                                flag=false;
+                            }
+                            layer.msg(res.msg);
+                        }
+                    })
+                    if(flag){
+                        resultTable.reload();
+                        layer.close(index);
+                    }
+                }
+            })
+        })
+        table.on('tool(role_filter)',function(obj) {
+            var opt = obj.event;
+            var data=obj.data;
+            if(opt=='delete'){
+                layer.open({
+                    title:'提示',
+                    area:['300px','150px'],
+                    type:1,
+                    content:'&emsp;删除后数据将不可恢复，您确定要删除吗？',
+                    btn:['确定','取消'],
+                    yes:function(index,layero){
+                        layer.close(index);
+                        $.ajax({
+                            url:'/role/deleteRole',
+                            type:'post',
+                            dataType:'json',
+                            async:false,
+                            data:{
+                                'rId':data.rId
+                            },
+                            success:function(res){
+                                layer.msg(res.msg);
+                                if(res.code=='success'){
+                                    resultTable.reload();
+                                }
+                            }
+                        })
+                    }
+                })
+            }else if(opt=='update'){
+                layer.open({
+                    type:2,
+                    anim:1,
+                    title:['编辑','font-size:16px;'],
+                    content:['/role/goupdaterole?rId='+data.rId+'&rName='+data.rName,'no'],
+                    area:['900px','300px'],
+                    btn:['保存','取消'],
+                    yes:function(index,layero){
+                        var body=layer.getChildFrame('body',index);
+                        var rId=body.find('#rId').val();
+                        var rName=body.find('#rName').val();
+                        if(!rName){
+                            return false;
+                        }
+                        var flag=true;
+                        $.ajax({
+                            url:'/role/updateRole',
+                            type:'post',
+                            dataType:'json',
+                            async:false,
+                            data:{
+                                'rId':rId,
+                                'rName':rName
+                            },
+                            success:function(res){
+                                if(res.code!='success'){
+                                    flag=false;
+                                }
+                                layer.msg(res.msg);
+                            }
+                        })
+                        if(flag){
+                            resultTable.reload();
+                            layer.close(index);
+                        }
+                    }
+                })
+            }else if(opt=='fpcd'){
+                /*$.ajax({
+                    url:'/role/findRoleMenu',
+                    type:'post',
+                    data:{
+                        'rId':data.rId
+                    },
+                    dataType:'json',
+                    async:false,
+                    success:function(res){
+                        console.log(res);
+                    }
+                })*/
+                layer.open({
+                    type: 2, //type:0 也行
+                    title: "选择树",
+                    area: ["400px", "80%"],
+                    content: ['/role/gorolemenu?rId='+data.rId],
+                    btn: ['确认选择'],
+                    yes: function(index, layero) {
+                        var body=layer.getChildFrame('body',index);
+                        var iframeWin = window[layero.find('iframe')[0]['name']];
+                        var rId=body.find('#rId').val();
+                        var rmIds=body.find('#rmIds').val();
+                        var flag = true;
+                        var params = dtree.getCheckbarNodesParam(iframeWin.DTree);
+                        if (params.length == 0) {
+                            layer.msg("请至少选择一个节点", {icon: 2});
+                            return false;
+                        }
+                        // 获取复选框数组数据
+                        var paramJsonArr = iframeWin.DTree.getCheckbarJsonArrParam();
+                        var uprmIds=paramJsonArr["nodeId"].join(",");
+                        $.ajax({
+                            url:'/role/updateRmId',
+                            type:'post',
+                            dataType:'json',
+                            data:{
+                                'rId':rId,
+                                'rmIds':rmIds,
+                                'uprmIds':uprmIds
+                            },
+                            async:false,
+                            success:function(res){
+                                layer.msg(res.msg);
+                                if(res.code!='success'){
+                                    flag=false;
+                                }
+                            }
+                        })
+                        if(flag){
+                            layer.close(index);
+                        }
+                    }
+                });
+            }
+        })
+    })
+</script>
+</body>
+</html>
